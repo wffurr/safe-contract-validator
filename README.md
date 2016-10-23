@@ -1,8 +1,10 @@
 # SA.FE Loot Buy Spreadsheet Script	
-									
+
+````
 Author:          William Furr
 Last Modified:   2016-10-23
 License:         [CC BY-NC-SA 4.0][1]
+````
 
 ## Purpose
 
