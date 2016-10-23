@@ -5,6 +5,7 @@
   Copyright:    (c) 2016 by William Furr
   License:      CC BY-NC-SA 4.0
                 https://creativecommons.org/licenses/by-nc-sa/4.0/
+  Github URL:   https://github.com/wffurr/safe-contract-validator
   ----------------------------------------------------------------------------
   A library for importing EVE contracts and validating that they meet the
   Nobody in Local [SA.FE] loot buy contract requirements.
