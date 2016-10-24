@@ -87,6 +87,7 @@ function populateNames(contract, name_cache) {
   var nameID, xml, doc, root, name, corp;
   for (var name_field in {issuer:1, assignee:1, acceptor:1}) {
     name_id = contract[name_field + 'ID'];
+    if (name_id == 0) continue;
     if (!(name_id in name_cache)) {
       xml = UrlFetchApp.fetch(url + name_id);
       doc = XmlService.parse(xml);
