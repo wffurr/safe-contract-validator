@@ -35,7 +35,17 @@ function validateContracts(keyID, vCode) {
     validate(contracts[i]);
     output.push(buildOutput(contracts[i]));
   }
-  return output;
+  return output.sort(function(x, y) {
+    if (x[7] != y[7]) {  // Status
+      if (x[7] == 'Outstanding') return -1;
+      if (y[7] == 'Outstanding') return 1;
+    }
+    if (x[4] != y[4]) {
+      return parseInt(y[4]) - parseInt(x[4]);  // Days remaining
+    } else {
+      return parseEVEAPIDate(y[3]) - parseEVEAPIDate(x[3]);  // Date issued
+    }
+  });
 }
 
 /**
@@ -249,13 +259,23 @@ function buildOutput(contract) {
     contract.acceptorName,
     contract.dateAccepted,
   ];
-  // TODO figure out date sorting, doesn't seem to work
-  result = result.sort(function(x, y) {
-      if (x.numDays != y.numDays) {
-        return y.numDays - x.numDays;
-      } else {
-        return y.dateIssued - x.dateIssued;
-      }
-    });
   return result;
+}
+
+/**
+ * I don't know why this is a thing, but Date.parse in Google Apps script can't handle
+ * simple date formats like 2016-10-22 02:35:14.
+ */
+function parseEVEAPIDate(date_string) {
+  var parts = date_string.split(' ');
+  var date_part = parts[0];
+  var time_part = parts[1];
+  var date = new Date();
+  parts = date_part.split('-');
+  date.setFullYear(parts[0], parseInt(parts[1]) - 1, parts[2]);
+  parts = time_part.split(':');
+  date.setHours(parts[0]);
+  date.setMinutes(parts[1]);
+  date.setSeconds(parts[2]);
+  return date.valueOf();  // Unix timestamp
 }
