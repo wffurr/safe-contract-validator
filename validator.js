@@ -73,7 +73,9 @@ function getContracts(keyID, vCode) {
  */
 function populateFields(contract, name_cache, keyID, vCode) {
   populateNames(contract, name_cache);
-  populateItems(contract, keyID, vCode);
+  if (contract.type == 'ItemExchange') {
+    populateItems(contract, keyID, vCode);
+  }
 }
 
 /**
@@ -83,22 +85,43 @@ function populateFields(contract, name_cache, keyID, vCode) {
  * Uses name_cache to avoid repeat API calls for the same characterID
  */
 function populateNames(contract, name_cache) {
-  var url = 'https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=';
-  var nameID, xml, doc, root, name, corp;
+  var name_id;
   for (var name_field in {issuer:1, assignee:1, acceptor:1}) {
     name_id = contract[name_field + 'ID'];
     if (name_id == 0) continue;
     if (!(name_id in name_cache)) {
-      xml = UrlFetchApp.fetch(url + name_id);
-      doc = XmlService.parse(xml);
-      root = doc.getRootElement();
-      name_cache[name_id] = {
-        name: root.getChild('result').getChild('characterName').getText(),
-        corp: root.getChild('result').getChild('corporation').getText()
-      };
+      name_cache[name_id] = fetchCharacterOrCorporationName(name_id);
     }
     contract[name_field + 'Name'] = name_cache[name_id].name;
     contract[name_field + 'Corp'] = name_cache[name_id].corp;
+  }
+}
+
+function fetchCharacterOrCorporationName(id) {
+  // Try first as characterID, will 500 if ID is actually a corporation
+  var isCorp = false, resp, doc, root;
+  var url = 'https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=';
+  resp = UrlFetchApp.fetch(url + id, { muteHttpExceptions: true });
+  if (resp.getResponseCode() == 500) {
+    isCorp = true;
+    url = 'https://api.eveonline.com/corp/CorporationSheet.xml.aspx?corporationID='
+    resp = UrlFetchApp.fetch(url + id, { muteHttpExceptions: true });
+    if (resp.getResponseCode() == 500) {
+      return { name: 'unknown', corp: 'unknown' };
+    }
+  }
+  doc = XmlService.parse(resp.getContentText());
+  root = doc.getRootElement();
+  if (isCorp) {
+    return {
+      name: root.getChild('result').getChild('corporationName').getText(),
+      corp: root.getChild('result').getChild('corporationName').getText()
+    };
+  } else {
+    return {
+      name: root.getChild('result').getChild('characterName').getText(),
+      corp: root.getChild('result').getChild('corporation').getText()
+    };
   }
 }
 
@@ -176,7 +199,7 @@ function validate(contract) {
     contract.error_msg = 'Contract has collateral or reward > 0';
     return;
   }
-  if (!'evepraisal' in contract) {
+  if (!('evepraisal' in contract)) {
     contract.valid = false;
     contract.error_msg = 'EVEpraisal URL not found in contract title';
     return;
