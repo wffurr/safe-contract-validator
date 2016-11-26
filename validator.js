@@ -22,6 +22,12 @@ PRICE_EPSILON = 1000000;
 TAX_RATE = 0.85;
 
 /**
+ * Constants for contract verification
+ */
+ALLIANCE_ID=99000739
+STATION_ID=1021149293700
+
+/**
  * Fetch all SA.FE contracts from the EVE XML API
  *
  * @return 2D array of contract data and validation.
@@ -113,6 +119,12 @@ function populateNames(contract, name_cache) {
 
 function fetchCharacterOrCorporationName(id) {
   // Try first as characterID, will 500 if ID is actually a corporation
+  if (id == ALLIANCE_ID) {
+  	return {
+  		name: 'Of Sound Mind',
+  		corp: 'Of Sound Mind'
+  	};
+  }
   var isCorp = false, resp, doc, root;
   var url = 'https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=';
   resp = UrlFetchApp.fetch(url + id, { muteHttpExceptions: true });
@@ -200,12 +212,12 @@ function validate(contract) {
   // TODO allow contracts issued to SOUND Holding?
   // How does that work with the API key?
   if (!(contract.assigneeName == 'Nobody in Local' ||
-  	    contract.assigneeID == 99000739)) {
+  	    contract.assigneeName == 'Of Sound Mind')) {
     contract.valid = false;
     contract.error_msg = 'Contract is not assigned to Nobody in Local';
     return;
   }
-  if (contract.startStationID != 1021149293700) {
+  if (contract.startStationID != STATION_ID) {
     contract.valid = false;
     contract.error_msg = 'Contract is not in DHOP';
     return;
