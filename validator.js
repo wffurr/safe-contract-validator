@@ -18,7 +18,7 @@
 /**
  * Configuration fields for API key and price calculations
  */
-PRICE_EPSILON = 10;
+PRICE_EPSILON = 1000000;
 TAX_RATE = 0.85;
 
 /**
@@ -26,14 +26,18 @@ TAX_RATE = 0.85;
  *
  * @return 2D array of contract data and validation.
  */
-function validateContracts(keyID, vCode) {
+function validateContracts(keyID, vCode, nonce) {
   var contracts = getContracts(keyID, vCode);
   var name_cache = {};
   var output = [];
   for (var i = 0, leni = contracts.length; i < leni; i++) {
+    if (contracts[i].status != 'Outstanding') continue;
     populateFields(contracts[i], name_cache, keyID, vCode);
     validate(contracts[i]);
     output.push(buildOutput(contracts[i]));
+  }
+  if (output.length == 0) {
+    output = ['No contracts found for Nobody in Local [SA.FE]'];
   }
   return output.sort(function(x, y) {
     if (x[7] != y[7]) {  // Status
@@ -41,9 +45,9 @@ function validateContracts(keyID, vCode) {
       if (y[7] == 'Outstanding') return 1;
     }
     if (x[4] != y[4]) {
-      return parseInt(y[4]) - parseInt(x[4]);  // Days remaining
+      return parseEVEAPIDate(x[4]) - parseEVEAPIDate(y[4]);  // expiration date
     } else {
-      return parseEVEAPIDate(y[3]) - parseEVEAPIDate(x[3]);  // Date issued
+      return parseEVEAPIDate(y[3]) - parseEVEAPIDate(x[3]);  // issue date
     }
   });
 }
@@ -203,6 +207,7 @@ function validate(contract) {
   if (contract.startStationID != 1021149293700) {
     contract.valid = false;
     contract.error_msg = 'Contract is not in DHOP';
+    return;
   }
   if (contract.reward > 0 || contract.collateral > 0) {
     contract.valid = false;
@@ -218,8 +223,8 @@ function validate(contract) {
         Math.abs(Math.round(contract.price) -
         Math.round(contract.evepraisal.buy_total * TAX_RATE)) > PRICE_EPSILON) {
     contract.valid = false;
-    contract.error_msg = 'Contract price does not match evepraisal price * ' +
-                         'tax rate';
+    contract.error_msg = 'Contract price (' + contract.price + ') does not match evepraisal price * ' +
+                         'tax rate (' + contract.evepraisal.buy_total + ' * ' + TAX_RATE + ' = ' + Math.round(contract.evepraisal.buy_total * TAX_RATE) + ')';
     return;
   }
   for (var typeID in contract.contractItems) {
@@ -238,6 +243,11 @@ function validate(contract) {
       return;
     }
   }
+  if (parseEVEAPIDate(contract.dateExpired) < Date.now()) {
+    contract.valid = false;
+    contract.error_msg = 'Contract expired!  Ask issuer to re-issue.';
+    return;
+  }
   // TODO loot whitelist or blacklist check
   contract.valid = true;
 }
@@ -250,12 +260,12 @@ function buildOutput(contract) {
   var result = [
     contract.title,
     contract.issuerName,
-    contract.price,
+    parseFloat(contract.price),
     contract.dateIssued,
-    contract.numDays,
+    contract.dateExpired,
     contract.valid,
     contract.error_msg,
-    contract.status,
+    parseEVEAPIDate(contract.dateExpired) < Date.now() ? 'Expired' : contract.status,
     contract.acceptorName,
     contract.dateAccepted,
   ];
