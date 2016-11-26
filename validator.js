@@ -120,10 +120,10 @@ function populateNames(contract, name_cache) {
 function fetchCharacterOrCorporationName(id) {
   // Try first as characterID, will 500 if ID is actually a corporation
   if (id == ALLIANCE_ID) {
-  	return {
-  		name: 'Of Sound Mind',
-  		corp: 'Of Sound Mind'
-  	};
+    return {
+      name: 'Of Sound Mind',
+      corp: 'Of Sound Mind'
+    };
   }
   var isCorp = false, resp, doc, root;
   var url = 'https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=';
@@ -209,13 +209,14 @@ function validate(contract) {
     contract.error_msg = 'Issuer is not a member of Nobody in Local';
     return;
   }
-  // TODO allow contracts issued to SOUND Holding?
-  // How does that work with the API key?
-  if (!(contract.assigneeName == 'Nobody in Local' ||
-  	    contract.assigneeName == 'Of Sound Mind')) {
-    contract.valid = false;
-    contract.error_msg = 'Contract is not assigned to Nobody in Local';
-    return;
+  if (contract.assigneeName !== 'Nobody in Local') {
+    if (contract.assigneeName == 'Of Sound Mind') {
+      contract.error_msg = 'Alliance contract - please mail issuer';
+    } else {
+      contract.valid = false;
+      contract.error_msg = 'Contract is not assigned to Nobody in Local';
+      return;
+    }
   }
   if (contract.startStationID != STATION_ID) {
     contract.valid = false;
