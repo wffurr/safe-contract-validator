@@ -199,7 +199,8 @@ function validate(contract) {
   }
   // TODO allow contracts issued to SOUND Holding?
   // How does that work with the API key?
-  if (contract.assigneeName !== 'Nobody in Local') {
+  if (!(contract.assigneeName == 'Nobody in Local' ||
+  	    contract.assigneeID == 99000739)) {
     contract.valid = false;
     contract.error_msg = 'Contract is not assigned to Nobody in Local';
     return;
