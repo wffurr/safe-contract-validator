@@ -2,7 +2,7 @@
   ImportJSON by William Furr (william.furr@gmail.com)
   ============================================================================
   Version:      1.0
-  Copyright:    (c) 2016 by William Furr
+  Copyright:    (c) 2017 by William Furr
   License:      CC BY-NC-SA 4.0
                 https://creativecommons.org/licenses/by-nc-sa/4.0/
   Github URL:   https://github.com/wffurr/safe-contract-validator
@@ -13,6 +13,7 @@
   Changelog:
   
   1.0    Initial release
+  1.1    Nonce for force-refresh and error handling
  *===========================================================================*/
 
 /**
@@ -158,7 +159,13 @@ function populateItems(contract, keyID, vCode) {
   var contract_items_url =
       'https://api.eveonline.com/corp/ContractItems.xml.aspx?keyID=' + keyID +
       '&vCode=' + vCode + '&contractID=';
-  var xml = UrlFetchApp.fetch(contract_items_url + contract.contractID);
+  try {
+    var xml = UrlFetchApp.fetch(contract_items_url + contract.contractID);
+  } catch(error) {
+    contract.valid = false;
+    contract.error_msg = 'Unable to load contract items, EVE API error: ' + error.toString();
+    return;
+  }
   var doc = XmlService.parse(xml);
   var root = doc.getRootElement();
   var rows = root.getChild('result').getChild('rowset').getChildren('row');
@@ -198,6 +205,9 @@ function populateItems(contract, keyID, vCode) {
  * Adds valid and error_msg fields to a fully populated contract
  */
 function validate(contract) {
+  if (contract.valid === false) {
+    return;  // Already failed validation
+  }
   if (contract.type !== 'ItemExchange') {
     contract.valid = false;
     contract.error_msg = 'Not an Item Exchange contract';
