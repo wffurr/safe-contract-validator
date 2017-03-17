@@ -14,7 +14,8 @@
   
   1.0    Initial release
   1.1    Nonce for force-refresh and error handling
- *===========================================================================*/
+   1.2    Use NPC prices for blue loot
+*===========================================================================*/
 
 /**
  * Configuration fields for API key and price calculations
@@ -27,6 +28,16 @@ TAX_RATE = 0.85;
  */
 ALLIANCE_ID=99000739
 STATION_ID=1021149293700
+
+/**
+ *  Blue loot is handled by fixed NPC buy orders, not evepraisal price.
+ */
+var BLUE_LOOT = {
+  'Ancient Coordinates Database': 1500000,
+  'Neural Network Analyzer': 200000,
+  'Sleeper Data Library': 500000,
+  'Sleeper Drone AI Nexus': 5000000
+};
 
 /**
  * Fetch all SA.FE contracts from the EVE XML API
@@ -243,12 +254,13 @@ function validate(contract) {
     contract.error_msg = 'EVEpraisal URL not found in contract title';
     return;
   }
+  var evepraisal_price = calcEvepraisalPrice(contract.evepraisal);
   if (contract.price !== 0 &&
         Math.abs(Math.round(contract.price) -
-        Math.round(contract.evepraisal.buy_total * TAX_RATE)) > PRICE_EPSILON) {
+        Math.round(evepraisal_price * TAX_RATE)) > PRICE_EPSILON) {
     contract.valid = false;
     contract.error_msg = 'Contract price (' + contract.price + ') does not match evepraisal price * ' +
-                         'tax rate (' + contract.evepraisal.buy_total + ' * ' + TAX_RATE + ' = ' + Math.round(contract.evepraisal.buy_total * TAX_RATE) + ')';
+                         'tax rate (' + evepraisal_price + ' * ' + TAX_RATE + ' = ' + Math.round(evepraisal_price * TAX_RATE) + ')';
     return;
   }
   for (var typeID in contract.contractItems) {
@@ -312,4 +324,17 @@ function parseEVEAPIDate(date_string) {
   date.setMinutes(parts[1]);
   date.setSeconds(parts[2]);
   return date.valueOf();  // Unix timestamp
+}
+
+function calcEvepraisalPrice(evepraisal) {
+  var total = 0;
+  for (i = 0, leni = evepraisal.items.length; i < leni; i++) {
+    var item = evepraisal.items[i];
+    if (item.name in BLUE_LOOT) {
+      total += BLUE_LOOT[item.name] * item.quantity;
+    } else {
+      total += item.prices.buy.max * item.quantity;
+    }
+  }
+  return total;
 }
