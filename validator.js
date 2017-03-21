@@ -55,7 +55,7 @@ function validateContracts(keyID, vCode, nonce) {
     validate(contracts[i]);
     output.push(buildOutput(contracts[i]));
   }
-  if (output.length == 0) {
+  if (output.length === 0) {
     output = ['No contracts found for Nobody in Local [SA.FE]'];
   }
   return output.sort(function(x, y) {
@@ -121,7 +121,7 @@ function populateNames(contract, name_cache) {
   var name_id;
   for (var name_field in {issuer:1, assignee:1, acceptor:1}) {
     name_id = contract[name_field + 'ID'];
-    if (name_id == 0) continue;
+    if (name_id === 0) continue;
     if (!(name_id in name_cache)) {
       name_cache[name_id] = fetchCharacterOrCorporationName(name_id);
     }
@@ -138,18 +138,18 @@ function fetchCharacterOrCorporationName(id) {
       corp: 'Of Sound Mind'
     };
   }
-  if (id = NOBODY_IN_LOCAL_ID) {
+  if (id == NOBODY_IN_LOCAL_ID) {
     return {
       name: 'Nobody in Local',
       corp: 'Nobody in Local'
-    }
+    };
   }
   var isCorp = false, resp, doc, root;
   var url = 'https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=';
   resp = UrlFetchApp.fetch(url + id, { muteHttpExceptions: true });
   if (resp.getResponseCode() == 500) {
     isCorp = true;
-    url = 'https://api.eveonline.com/corp/CorporationSheet.xml.aspx?corporationID='
+    url = 'https://api.eveonline.com/corp/CorporationSheet.xml.aspx?corporationID=';
     resp = UrlFetchApp.fetch(url + id, { muteHttpExceptions: true });
     if (resp.getResponseCode() == 500) {
       return { name: 'unknown', corp: 'unknown' };
@@ -178,8 +178,9 @@ function populateItems(contract, keyID, vCode) {
   var contract_items_url =
       'https://api.eveonline.com/corp/ContractItems.xml.aspx?contractID=';
   var contract_items_url_key = '&keyID=' + keyID + '&vCode=' + vCode + '';
+  var xml;
   try {
-    var xml = UrlFetchApp.fetch(contract_items_url + contract.contractID + contract_items_url_key);
+    xml = UrlFetchApp.fetch(contract_items_url + contract.contractID + contract_items_url_key);
   } catch(error) {
     contract.valid = false;
     contract.error_msg = 'Unable to load contract items, EVE API error: ' + error.toString();

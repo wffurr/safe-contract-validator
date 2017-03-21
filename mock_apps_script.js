@@ -54,7 +54,7 @@ var XmlElement = function(node) {
     getText: function() {
       return node.textContent;
     }
-  }
+  };
 };
 
 var XmlService = {
