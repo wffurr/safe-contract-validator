@@ -26,13 +26,14 @@ TAX_RATE = 0.85;
 /**
  * Constants for contract verification
  */
-ALLIANCE_ID=99000739
-STATION_ID=1021149293700
+ALLIANCE_ID=99000739;
+NOBODY_IN_LOCAL_ID=98477920;
+STATION_ID=1021149293700;
 
 /**
  *  Blue loot is handled by fixed NPC buy orders, not evepraisal price.
  */
-var BLUE_LOOT = {
+BLUE_LOOT = {
   'Ancient Coordinates Database': 1500000,
   'Neural Network Analyzer': 200000,
   'Sleeper Data Library': 500000,
@@ -137,6 +138,12 @@ function fetchCharacterOrCorporationName(id) {
       corp: 'Of Sound Mind'
     };
   }
+  if (id = NOBODY_IN_LOCAL_ID) {
+    return {
+      name: 'Nobody in Local',
+      corp: 'Nobody in Local'
+    }
+  }
   var isCorp = false, resp, doc, root;
   var url = 'https://api.eveonline.com/eve/CharacterInfo.xml.aspx?characterID=';
   resp = UrlFetchApp.fetch(url + id, { muteHttpExceptions: true });
@@ -148,7 +155,8 @@ function fetchCharacterOrCorporationName(id) {
       return { name: 'unknown', corp: 'unknown' };
     }
   }
-  doc = XmlService.parse(resp.getContentText());
+  var xml = resp.getContentText();
+  doc = XmlService.parse(xml);
   root = doc.getRootElement();
   if (isCorp) {
     return {
@@ -168,16 +176,16 @@ function fetchCharacterOrCorporationName(id) {
  */
 function populateItems(contract, keyID, vCode) {
   var contract_items_url =
-      'https://api.eveonline.com/corp/ContractItems.xml.aspx?keyID=' + keyID +
-      '&vCode=' + vCode + '&contractID=';
+      'https://api.eveonline.com/corp/ContractItems.xml.aspx?contractID=';
+  var contract_items_url_key = '&keyID=' + keyID + '&vCode=' + vCode + '';
   try {
-    var xml = UrlFetchApp.fetch(contract_items_url + contract.contractID);
+    var xml = UrlFetchApp.fetch(contract_items_url + contract.contractID + contract_items_url_key);
   } catch(error) {
     contract.valid = false;
     contract.error_msg = 'Unable to load contract items, EVE API error: ' + error.toString();
     return;
   }
-  var doc = XmlService.parse(xml);
+  var doc = XmlService.parse(xml.getContentText());
   var root = doc.getRootElement();
   var rows = root.getChild('result').getChild('rowset').getChildren('row');
   var typeID;
@@ -194,7 +202,7 @@ function populateItems(contract, keyID, vCode) {
   var evepraisal_url = contract.title.match('http://evepraisal.com/e/[0-9]+');
   if (evepraisal_url) {
     var json = UrlFetchApp.fetch(evepraisal_url + '.json');
-    var evepraisal = JSON.parse(json);
+    var evepraisal = JSON.parse(json.getContentText());
     contract.evepraisal = {
       buy_total: evepraisal.totals.buy,
       market: evepraisal.market_name,
