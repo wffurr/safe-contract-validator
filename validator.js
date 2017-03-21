@@ -204,7 +204,7 @@ function populateItems(contract, keyID, vCode) {
     var json = UrlFetchApp.fetch(evepraisal_url + '.json');
     var evepraisal = JSON.parse(json.getContentText());
     contract.evepraisal = {
-      buy_total: evepraisal.totals.buy,
+      buy_total: 0,
       market: evepraisal.market_name,
       created: new Date(evepraisal.created * 1000),
       items: {}
@@ -214,8 +214,15 @@ function populateItems(contract, keyID, vCode) {
       if (!(typeID in contract.evepraisal.items)) {
         contract.evepraisal.items[typeID] = 0;
       }
-      contract.evepraisal.items[typeID] +=
-          parseInt(evepraisal.items[i].quantity);
+      var item_qty = parseInt(evepraisal.items[i].quantity);
+      contract.evepraisal.items[typeID] += item_qty;
+      var item_name = evepraisal.items[i].name;
+      if (item_name in BLUE_LOOT) {
+        contract.evepraisal.buy_total += BLUE_LOOT[item_name] * item_qty;
+      } else {
+        contract.evepraisal.buy_total +=
+            parseFloat(evepraisal.items[i].prices.buy.max) * item_qty;
+      }
     }
   }
 }
@@ -262,13 +269,15 @@ function validate(contract) {
     contract.error_msg = 'EVEpraisal URL not found in contract title';
     return;
   }
-  var evepraisal_price = calcEvepraisalPrice(contract.evepraisal);
+  var evepraisal_price = contract.evepraisal.buy_total;
+  var after_tax_price = Math.round(evepraisal_price * TAX_RATE);
   if (contract.price !== 0 &&
-        Math.abs(Math.round(contract.price) -
-        Math.round(evepraisal_price * TAX_RATE)) > PRICE_EPSILON) {
+      Math.abs(contract.price - after_tax_price) > PRICE_EPSILON) {
     contract.valid = false;
-    contract.error_msg = 'Contract price (' + contract.price + ') does not match evepraisal price * ' +
-                         'tax rate (' + evepraisal_price + ' * ' + TAX_RATE + ' = ' + Math.round(evepraisal_price * TAX_RATE) + ')';
+    contract.error_msg = 'Contract price (' + contract.price + ') does ' +
+                         ' not match evepraisal price * tax rate (' + 
+                         evepraisal_price + ' * ' + TAX_RATE + ' = ' +
+                         after_tax_price + ')';
     return;
   }
   for (var typeID in contract.contractItems) {
@@ -308,9 +317,9 @@ function buildOutput(contract) {
     contract.dateIssued,
     contract.dateExpired,
     contract.valid,
-    contract.error_msg,
+    contract.error_msg || '',
     parseEVEAPIDate(contract.dateExpired) < Date.now() ? 'Expired' : contract.status,
-    contract.acceptorName,
+    contract.acceptorName || '',
     contract.dateAccepted,
   ];
   return result;
@@ -332,17 +341,4 @@ function parseEVEAPIDate(date_string) {
   date.setMinutes(parts[1]);
   date.setSeconds(parts[2]);
   return date.valueOf();  // Unix timestamp
-}
-
-function calcEvepraisalPrice(evepraisal) {
-  var total = 0;
-  for (i = 0, leni = evepraisal.items.length; i < leni; i++) {
-    var item = evepraisal.items[i];
-    if (item.name in BLUE_LOOT) {
-      total += BLUE_LOOT[item.name] * item.quantity;
-    } else {
-      total += item.prices.buy.max * item.quantity;
-    }
-  }
-  return total;
 }
