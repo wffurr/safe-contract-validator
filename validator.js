@@ -14,7 +14,8 @@
   
   1.0    Initial release
   1.1    Nonce for force-refresh and error handling
-   1.2    Use NPC prices for blue loot
+  1.2    Use NPC prices for blue loot
+  1.3    Update station IDs
 *===========================================================================*/
 
 /**
@@ -26,9 +27,12 @@ TAX_RATE = 0.85;
 /**
  * Constants for contract verification
  */
-ALLIANCE_ID=99000739;
-NOBODY_IN_LOCAL_ID=98477920;
-STATION_ID=1021149293700;
+ALLIANCE_ID = 99000739;
+NOBODY_IN_LOCAL_ID = 98477920;
+STATION_IDS = {
+  1021149293700: "Dern's House of Pancakes",
+  1024225553853: "Statio Tranquillitatis",
+};
 
 /**
  *  Blue loot is handled by fixed NPC buy orders, not evepraisal price.
@@ -121,7 +125,7 @@ function populateNames(contract, name_cache) {
   var name_id;
   for (var name_field in {issuer:1, assignee:1, acceptor:1}) {
     name_id = contract[name_field + 'ID'];
-    if (name_id === 0) continue;
+    if (name_id == 0) continue;
     if (!(name_id in name_cache)) {
       name_cache[name_id] = fetchCharacterOrCorporationName(name_id);
     }
@@ -255,9 +259,9 @@ function validate(contract) {
       return;
     }
   }
-  if (contract.startStationID != STATION_ID) {
+  if (!(contract.startStationID in STATION_IDS)) {
     contract.valid = false;
-    contract.error_msg = 'Contract is not in DHOP';
+    contract.error_msg = 'Contract is not in an allowed station';
     return;
   }
   if (contract.reward > 0 || contract.collateral > 0) {
