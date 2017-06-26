@@ -204,7 +204,7 @@ function populateItems(contract, keyID, vCode) {
         parseInt(rows[i].getAttribute('quantity').getValue());
   }
   
-  var evepraisal_url = contract.title.match('http://evepraisal.com/e/[0-9]+');
+  var evepraisal_url = contract.title.match('http[s]?://evepraisal.com/[ae]/[a-z0-9]+');
   if (evepraisal_url) {
     var json = UrlFetchApp.fetch(evepraisal_url + '.json');
     var evepraisal = JSON.parse(json.getContentText());
