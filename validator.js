@@ -30,8 +30,7 @@ TAX_RATE = 0.85;
 ALLIANCE_ID = 99000739;
 NOBODY_IN_LOCAL_ID = 98477920;
 STATION_IDS = {
-  1021149293700: "Dern's House of Pancakes",
-  1024225553853: "Statio Tranquillitatis",
+  1025500504700: "Statio Tranquillitatis",
 };
 
 /**
